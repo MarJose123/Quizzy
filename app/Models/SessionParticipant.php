@@ -74,11 +74,15 @@ class SessionParticipant extends Model
     }
 
     /**
-     * Get the participant's score.
+     * Get the participant's score based on points of correct answers.
      */
     public function score(): int
     {
-        return $this->answers()->where('is_correct', true)->count();
+        if (! $this->relationLoaded('answers')) {
+            $this->load('answers.question');
+        }
+
+        return (int) $this->answers->where('is_correct', true)->sum(fn (SessionAnswer $answer) => $answer->question->points ?? 10);
     }
 
     /**

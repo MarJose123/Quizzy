@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read User $creator
  * @property-read Collection<int, Question> $questions
+ * @property-read Collection<int, QuizSession> $sessions
  */
 #[Fillable(['created_by', 'title', 'description'])]
 class Quiz extends Model
@@ -45,5 +46,15 @@ class Quiz extends Model
     public function questions(): HasMany
     {
         return $this->hasMany(Question::class)->orderBy('order');
+    }
+
+    /**
+     * Get the sessions for the quiz.
+     *
+     * @return HasMany<QuizSession, $this>
+     */
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(QuizSession::class);
     }
 }

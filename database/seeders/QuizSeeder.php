@@ -13,7 +13,7 @@ class QuizSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin = User::where('email', 'admin@quizzy.test')->first();
+        $admin = User::where('email', 'admin@quizzy.test')->firstOrFail();
 
         // Sample quiz 1: General Knowledge (multiple-choice questions)
         Quiz::factory()->create([

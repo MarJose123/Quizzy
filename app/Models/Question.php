@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -17,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int          $quiz_id
  * @property string       $text
  * @property QuestionType $type
+ * @property int          $points
  * @property int          $order
  * @property Carbon|null  $created_at
  * @property Carbon|null  $updated_at
@@ -24,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Answer> $answers
  * @property-read Answer|null $correctAnswer
  */
-#[Fillable(['quiz_id', 'text', 'type', 'order'])]
+#[Fillable(['quiz_id', 'text', 'type', 'points', 'order'])]
 class Question extends Model
 {
     /** @use HasFactory<QuestionFactory> */
@@ -65,10 +67,10 @@ class Question extends Model
     /**
      * Get the correct answer for the question.
      *
-     * @return HasMany<Answer, $this>
+     * @return HasOne<Answer, $this>
      */
-    public function correctAnswer(): HasMany
+    public function correctAnswer(): HasOne
     {
-        return $this->hasMany(Answer::class)->where('is_correct', true);
+        return $this->hasOne(Answer::class)->where('is_correct', true);
     }
 }

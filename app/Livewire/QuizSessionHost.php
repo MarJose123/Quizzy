@@ -4,9 +4,11 @@ namespace App\Livewire;
 
 use App\Enums\SessionStatus;
 use App\Enums\UserRole;
+use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\SessionParticipant;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -19,6 +21,14 @@ class QuizSessionHost extends Component
 
     public function mount(Quiz $quiz): void
     {
+        $user = Auth::user();
+
+        if ($user === null || ($quiz->created_by !== Auth::id() && ! $user->isAdmin())) {
+            redirect()->to(route('dashboard'))->with('error', 'You do not have permission to host this quiz.');
+
+            return;
+        }
+
         $this->quiz = $quiz;
 
         if ($quiz->questions()->count() === 0) {
@@ -27,7 +37,7 @@ class QuizSessionHost extends Component
             return;
         }
 
-        $existing = QuizSession::where('quiz_id', $quiz->id)
+        $existing = QuizSession::query()->where('quiz_id', $quiz->id)
             ->where('host_id', Auth::id())
             ->whereIn('status', [SessionStatus::Waiting->value, SessionStatus::Active->value])
             ->first();
@@ -38,17 +48,17 @@ class QuizSessionHost extends Component
             return;
         }
 
-        $session = QuizSession::create([
+        $session = QuizSession::query()->create([
             'quiz_id' => $quiz->id,
             'host_id' => Auth::id(),
             'token'   => (string) Str::uuid(),
             'status'  => SessionStatus::Waiting->value,
         ]);
 
-        SessionParticipant::firstOrCreate(
+        SessionParticipant::query()->updateOrCreate(
             ['session_id' => $session->id, 'user_id' => Auth::id()],
             [
-                'role'      => UserRole::Host->value,
+                'role'      => UserRole::Host,
                 'joined_at' => now(),
             ]
         );
@@ -63,29 +73,31 @@ class QuizSessionHost extends Component
         }
     }
 
-    public function currentQuestion()
+    public function currentQuestion(): ?Question
     {
         if (! $this->session) {
-            return;
+            return null;
         }
 
-        $questions = $this->session->quiz->questions;
+        $questions = $this->session->loadMissing('quiz.questions.answers')->quiz->questions;
 
         return $questions->get($this->session->current_question_index) ?: null;
     }
 
-    public function participantCount()
+    public function participantCount(): int
     {
         if (! $this->session) {
             return 0;
         }
 
-        return $this->session->participants()
-            ->where('role', '!=', UserRole::Host->value)
+        $this->session->loadMissing('participants');
+
+        return (int) $this->session->participants
+            ->where('role', '!=', UserRole::Host)
             ->count();
     }
 
-    public function inviteLink()
+    public function inviteLink(): string
     {
         if (! $this->session) {
             return '';
@@ -94,13 +106,17 @@ class QuizSessionHost extends Component
         return url('/session/' . $this->session->token . '/join');
     }
 
-    public function totalQuestions()
+    public function totalQuestions(): int
     {
         return max($this->quiz->questions()->count(), 1);
     }
 
     public function startSession(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $this->session->update([
             'status' => SessionStatus::Active->value,
         ]);
@@ -108,6 +124,10 @@ class QuizSessionHost extends Component
 
     public function showQuestion(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $this->session->update([
             'show_answer' => false,
             'show_scores' => false,
@@ -116,6 +136,10 @@ class QuizSessionHost extends Component
 
     public function revealAnswer(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $this->session->update([
             'show_answer' => true,
         ]);
@@ -123,6 +147,10 @@ class QuizSessionHost extends Component
 
     public function showScores(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $this->session->update([
             'show_scores' => true,
         ]);
@@ -130,6 +158,10 @@ class QuizSessionHost extends Component
 
     public function nextQuestion(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $maxIndex = $this->totalQuestions() - 1;
         $nextIndex = min($this->session->current_question_index + 1, $maxIndex);
 
@@ -142,6 +174,10 @@ class QuizSessionHost extends Component
 
     public function previousQuestion(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $prevIndex = max($this->session->current_question_index - 1, 0);
 
         $this->session->update([
@@ -153,6 +189,10 @@ class QuizSessionHost extends Component
 
     public function endSession(): void
     {
+        if (! $this->session) {
+            return;
+        }
+
         $this->session->update([
             'status'  => SessionStatus::Finished->value,
             'ends_at' => now(),
@@ -167,8 +207,8 @@ class QuizSessionHost extends Component
         $this->dispatch('invite-link-copied', link: $link);
     }
 
-    public function render()
+    public function render(): View
     {
-        return view('livewire.quiz-session-host');
+        return view('livewire.quiz-session-host')->layout('components.layouts.sidebar', ['title' => 'Host Session']);
     }
 }

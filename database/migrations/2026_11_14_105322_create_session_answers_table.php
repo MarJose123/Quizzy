@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['session_id', 'participant_id']);
-            $table->unique(['participant_id', 'question_id']);
+            $table->unique(['session_id', 'participant_id', 'question_id']);
         });
     }
 

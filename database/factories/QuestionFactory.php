@@ -18,6 +18,7 @@ class QuestionFactory extends Factory
             'quiz_id' => Quiz::factory(),
             'text'    => fake()->sentence(),
             'type'    => fake()->randomElement([QuestionType::MultipleChoice, QuestionType::TrueFalse]),
+            'points'  => 10,
             'order'   => 0,
         ];
     }

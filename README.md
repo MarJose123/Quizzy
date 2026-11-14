@@ -157,6 +157,7 @@ After seeding the database, the following users are available for testing (all w
 ### Viewer
 - Join via the invite link
 - Select "Join as Viewer" for read-only access
+- The viewer page (`/session/{token}/viewer`) is public and does not require authentication, making it suitable for sharing in meetings or displaying on a big screen
 
 ## Testing
 

@@ -87,7 +87,7 @@ class QuizSession extends Model
      */
     public function answers(): HasMany
     {
-        return $this->hasMany(SessionAnswer::class);
+        return $this->hasMany(SessionAnswer::class, 'session_id');
     }
 
     /**
@@ -95,6 +95,8 @@ class QuizSession extends Model
      */
     public function currentQuestion(): ?Question
     {
+        $this->loadMissing('quiz.questions');
+
         $questions = $this->quiz->questions;
 
         return $questions->get($this->current_question_index) ?: null;

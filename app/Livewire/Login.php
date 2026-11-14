@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -19,7 +20,7 @@ class Login extends Component
         ]);
 
         if (Auth::attempt($credentials)) {
-            request()->session()->regenerate();
+            session()->regenerate();
             redirect()->intended(route('dashboard'));
 
             return;
@@ -28,15 +29,7 @@ class Login extends Component
         $this->addError('email', 'These credentials do not match our records.');
     }
 
-    public function logout(): void
-    {
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-        redirect()->route('home');
-    }
-
-    public function render()
+    public function render(): View
     {
         return view('livewire.login');
     }

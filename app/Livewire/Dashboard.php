@@ -3,6 +3,8 @@
 namespace App\Livewire;
 
 use App\Models\Quiz;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -13,11 +15,14 @@ class Dashboard extends Component
 
     public string $search = '';
 
-    public function quizzes()
+    /** @return LengthAwarePaginator<int, Quiz> */
+    public function quizzes(): LengthAwarePaginator
     {
-        $query = Quiz::withCount('questions')->with('creator');
+        $query = Quiz::query()->withCount('questions')->with('creator');
 
-        if (! Auth::user()->isAdmin()) {
+        $user = Auth::user();
+
+        if ($user !== null && ! $user->isAdmin()) {
             $query->where('created_by', Auth::id());
         }
 
@@ -35,15 +40,17 @@ class Dashboard extends Component
 
     public function deleteQuiz(Quiz $quiz): void
     {
-        if ($quiz->created_by !== Auth::id() && ! Auth::user()->isAdmin()) {
+        $user = Auth::user();
+
+        if ($user === null || ($quiz->created_by !== Auth::id() && ! $user->isAdmin())) {
             return;
         }
 
         $quiz->delete();
     }
 
-    public function render()
+    public function render(): View
     {
-        return view('livewire.dashboard');
+        return view('livewire.dashboard')->layout('components.layouts.sidebar', ['title' => 'Dashboard']);
     }
 }

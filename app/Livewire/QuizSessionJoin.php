@@ -6,6 +6,8 @@ use App\Enums\SessionStatus;
 use App\Enums\UserRole;
 use App\Models\QuizSession;
 use App\Models\SessionParticipant;
+use App\Support\Avatars;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -17,7 +19,7 @@ class QuizSessionJoin extends Component
 
     public function mount(string $token): void
     {
-        $session = QuizSession::where('token', $token)->with('quiz')->first();
+        $session = QuizSession::query()->where('token', $token)->with('quiz')->first();
 
         if (! $session) {
             $this->error = 'This session could not be found.';
@@ -31,10 +33,16 @@ class QuizSessionJoin extends Component
             return;
         }
 
+        if ($session->status === SessionStatus::Active) {
+            $this->error = 'This session has already started. You can no longer join.';
+
+            return;
+        }
+
         $this->session = $session;
 
         if (Auth::check()) {
-            $existing = SessionParticipant::where('session_id', $session->id)
+            $existing = SessionParticipant::query()->where('session_id', $session->id)
                 ->where('user_id', Auth::id())
                 ->first();
 
@@ -54,7 +62,21 @@ class QuizSessionJoin extends Component
             return;
         }
 
-        SessionParticipant::create([
+        if (! Auth::check()) {
+            redirect()->to(route('login'));
+
+            return;
+        }
+
+        $this->session->refresh();
+
+        if ($this->session->status !== SessionStatus::Waiting) {
+            $this->error = 'This session is no longer accepting new participants.';
+
+            return;
+        }
+
+        SessionParticipant::query()->create([
             'session_id' => $this->session->id,
             'user_id'    => Auth::id(),
             'role'       => UserRole::Participant,
@@ -64,7 +86,12 @@ class QuizSessionJoin extends Component
         redirect()->to(route('session.participant', $this->session->token));
     }
 
-    public function render()
+    public function getAvatarUrl(string $name, int $size = 128): string
+    {
+        return Avatars::url($name, $size);
+    }
+
+    public function render(): View
     {
         return view('livewire.quiz-session-join');
     }

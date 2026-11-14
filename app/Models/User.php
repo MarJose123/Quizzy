@@ -89,10 +89,6 @@ class User extends Authenticatable
      */
     public function initials(): string
     {
-        $initials = Str::initials($this->name, true);
-
-        return Str::length($initials) > 1
-            ? Str::substr($initials, 0, 1) . Str::substr($initials, -1)
-            : $initials;
+        return Str::initials($this->name, true);
     }
 }
